@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-package com.amazonaws.samples.kaja.taxi.consumer.events.es;
+package com.amazonaws.samples.kaja.taxi.consumer.events.sink;
 
 
 public class AverageTripDuration extends Document {

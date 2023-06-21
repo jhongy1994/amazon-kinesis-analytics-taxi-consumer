@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-package com.amazonaws.samples.kaja.taxi.consumer.events.kinesis;
+package com.amazonaws.samples.kaja.taxi.consumer.events.source;
 
 import java.time.Instant;
 import org.slf4j.Logger;

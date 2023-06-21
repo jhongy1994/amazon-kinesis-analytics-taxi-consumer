@@ -2,7 +2,7 @@ package com.amazonaws.samples.kaja.taxi.consumer.operators;
 
 import ch.hsr.geohash.GeoHash;
 import com.amazonaws.samples.kaja.taxi.consumer.events.flink.TripDuration;
-import com.amazonaws.samples.kaja.taxi.consumer.events.kinesis.TripEvent;
+import com.amazonaws.samples.kaja.taxi.consumer.events.source.TripEvent;
 import com.amazonaws.samples.kaja.taxi.consumer.utils.GeoUtils;
 import java.time.Duration;
 import org.apache.flink.api.common.functions.FlatMapFunction;

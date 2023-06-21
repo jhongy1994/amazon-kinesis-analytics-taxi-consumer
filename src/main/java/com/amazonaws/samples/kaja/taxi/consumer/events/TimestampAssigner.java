@@ -15,8 +15,8 @@
 
 package com.amazonaws.samples.kaja.taxi.consumer.events;
 
-import com.amazonaws.samples.kaja.taxi.consumer.events.kinesis.Event;
-import com.amazonaws.samples.kaja.taxi.consumer.events.kinesis.WatermarkEvent;
+import com.amazonaws.samples.kaja.taxi.consumer.events.source.Event;
+import com.amazonaws.samples.kaja.taxi.consumer.events.source.WatermarkEvent;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.slf4j.Logger;

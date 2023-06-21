@@ -18,11 +18,11 @@ package com.amazonaws.samples.kaja.taxi.consumer;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.samples.kaja.taxi.consumer.events.EventDeserializationSchema;
 import com.amazonaws.samples.kaja.taxi.consumer.events.TimestampAssigner;
-import com.amazonaws.samples.kaja.taxi.consumer.events.es.AverageTripDuration;
-import com.amazonaws.samples.kaja.taxi.consumer.events.es.PickupCount;
+import com.amazonaws.samples.kaja.taxi.consumer.events.sink.AverageTripDuration;
+import com.amazonaws.samples.kaja.taxi.consumer.events.sink.PickupCount;
 import com.amazonaws.samples.kaja.taxi.consumer.events.flink.TripDuration;
-import com.amazonaws.samples.kaja.taxi.consumer.events.kinesis.Event;
-import com.amazonaws.samples.kaja.taxi.consumer.events.kinesis.TripEvent;
+import com.amazonaws.samples.kaja.taxi.consumer.events.source.Event;
+import com.amazonaws.samples.kaja.taxi.consumer.events.source.TripEvent;
 import com.amazonaws.samples.kaja.taxi.consumer.operators.*;
 import com.amazonaws.samples.kaja.taxi.consumer.utils.GeoUtils;
 import com.amazonaws.samples.kaja.taxi.consumer.utils.ParameterToolUtils;
@@ -30,9 +30,11 @@ import com.amazonaws.services.kinesisanalytics.runtime.KinesisAnalyticsRuntime;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.connector.kinesis.sink.KinesisStreamsSink;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.LocalStreamEnvironment;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -49,13 +51,14 @@ import org.slf4j.LoggerFactory;
 public class ProcessTaxiStream {
   private static final Logger LOG = LoggerFactory.getLogger(ProcessTaxiStream.class);
 
-  private static final String DEFAULT_STREAM_NAME = "streaming-analytics-workshop";
-  private static final String DEFAULT_REGION_NAME = Regions.getCurrentRegion()==null ? "eu-west-1" : Regions.getCurrentRegion().getName();
+  private static final String DEFAULT_SOURCE_STREAM_NAME = "billie-source-test";
+  private static final String DEFAULT_SINK_STREAM_NAME = "billie-sink-test";
+
+  private static final String DEFAULT_REGION_NAME = Regions.getCurrentRegion()==null ? "us-east-1" : Regions.getCurrentRegion().getName();
 
 
   public static void main(String[] args) throws Exception {
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
 
     ParameterTool parameter;
 
@@ -87,9 +90,9 @@ public class ProcessTaxiStream {
 
 
     //create Kinesis source
-    DataStream<Event> kinesisStream = env.addSource(new FlinkKinesisConsumer<>(
+    DataStream<Event> sourceStream = env.addSource(new FlinkKinesisConsumer<>(
         //read events from the Kinesis stream passed in as a parameter
-        parameter.get("InputStreamName", DEFAULT_STREAM_NAME),
+        parameter.get("InputStreamName", DEFAULT_SOURCE_STREAM_NAME),
         //deserialize events with EventSchema
         new EventDeserializationSchema(),
         //using the previously defined properties
@@ -97,7 +100,7 @@ public class ProcessTaxiStream {
     ));
 
 
-    DataStream<TripEvent> trips = kinesisStream
+    DataStream<TripEvent> trips = sourceStream
         //extract watermarks from watermark events
         .assignTimestampsAndWatermarks(new AssignerWithPunctuatedWatermarksAdapter.Strategy<>(new TimestampAssigner()))
         //remove all events that aren't TripEvents
@@ -106,7 +109,6 @@ public class ProcessTaxiStream {
         .map(event -> (TripEvent) event)
         //remove all events with geo coordinates outside of NYC
         .filter(GeoUtils::hasValidCoordinates);
-
 
     DataStream<PickupCount> pickupCounts = trips
         //compute geo hash for every event
@@ -117,6 +119,8 @@ public class ProcessTaxiStream {
         //count events per geo hash in the one hour window
         .apply(new CountByGeoHash());
 
+    DataStream<String> pickupCountsAsString = pickupCounts
+            .map(pickupCount -> pickupCount.toString());
 
     DataStream<AverageTripDuration> tripDurations = trips
         .flatMap(new TripToTripDuration())
@@ -129,22 +133,25 @@ public class ProcessTaxiStream {
         .window(TumblingEventTimeWindows.of(Time.hours(1)))
         .apply(new TripDurationToAverageTripDuration());
 
+    DataStream<String> tripDurationAsString = tripDurations
+            .map(tripDuration -> tripDuration.toString());
 
-    if (parameter.has("ElasticsearchEndpoint")) {
-      String elasticsearchEndpoint = parameter.get("ElasticsearchEndpoint");
-      final String region = parameter.get("Region", DEFAULT_REGION_NAME);
+    //set Kinesis publisher properties
+    Properties kinesisProducerConfig = new Properties();
+    //set the region the Kinesis stream is located in
+    kinesisProducerConfig.setProperty(AWSConfigConstants.AWS_REGION, parameter.get("Region", DEFAULT_REGION_NAME));
 
-      //remove trailling /
-      if (elasticsearchEndpoint.endsWith(("/"))) {
-        elasticsearchEndpoint = elasticsearchEndpoint.substring(0, elasticsearchEndpoint.length()-1);
-      }
+    KinesisStreamsSink<String> sinkStream = KinesisStreamsSink.<String>builder()
+            .setKinesisClientProperties(kinesisProducerConfig)
+            .setSerializationSchema(new SimpleStringSchema())
+            .setStreamName(parameter.get("SinkStreamName",DEFAULT_SINK_STREAM_NAME))
+            .setPartitionKeyGenerator(element -> String.valueOf(element.hashCode()))
+            .build();
 
-      pickupCounts.addSink(AmazonElasticsearchSink.buildElasticsearchSink(elasticsearchEndpoint, region, "pickup_count", "_doc"));
-      tripDurations.addSink(AmazonElasticsearchSink.buildElasticsearchSink(elasticsearchEndpoint, region, "trip_duration", "_doc"));
-    }
+    pickupCountsAsString.sinkTo(sinkStream);
+    tripDurationAsString.sinkTo(sinkStream);
 
-
-    LOG.info("Reading events from stream {}", parameter.get("InputStreamName", DEFAULT_STREAM_NAME));
+    LOG.info("Reading events from stream {}", parameter.get("InputStreamName", DEFAULT_SOURCE_STREAM_NAME));
 
     env.execute();
   }

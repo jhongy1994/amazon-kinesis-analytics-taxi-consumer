@@ -13,31 +13,26 @@
  * permissions and limitations under the License.
  */
 
-package com.amazonaws.samples.kaja.taxi.consumer.events.kinesis;
+package com.amazonaws.samples.kaja.taxi.consumer.events.sink;
 
-import java.time.Instant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 
-public class WatermarkEvent extends Event {
-  public final Instant watermark;
+public abstract class Document {
+  private static final Gson gson = new GsonBuilder()
+      .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+      .create();
 
-  private static final Logger LOG = LoggerFactory.getLogger(WatermarkEvent.class);
+  public final long timestamp;
 
-  public WatermarkEvent() {
-    this.watermark = Instant.EPOCH;
-  }
-
-  @Override
-  public long getTimestamp() {
-    return watermark.toEpochMilli();
+  public Document(long timestamp) {
+    this.timestamp = timestamp;
   }
 
   @Override
   public String toString() {
-    return "WatermarkEvent{" +
-            "watermark=" + watermark +
-            '}';
+    return gson.toJson(this);
   }
 }

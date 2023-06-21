@@ -15,8 +15,8 @@
 
 package com.amazonaws.samples.kaja.taxi.consumer.events;
 
-import com.amazonaws.samples.kaja.taxi.consumer.events.kinesis.Event;
-import com.amazonaws.samples.kaja.taxi.consumer.events.kinesis.WatermarkEvent;
+import com.amazonaws.samples.kaja.taxi.consumer.events.source.Event;
+import com.amazonaws.samples.kaja.taxi.consumer.events.source.WatermarkEvent;
 import java.nio.charset.StandardCharsets;
 import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;

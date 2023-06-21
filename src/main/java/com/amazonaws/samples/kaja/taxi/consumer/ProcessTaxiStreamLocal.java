@@ -17,23 +17,14 @@ package com.amazonaws.samples.kaja.taxi.consumer;
 
 import com.amazonaws.regions.Regions;
 import com.amazonaws.samples.kaja.taxi.consumer.events.EventDeserializationSchema;
-import com.amazonaws.samples.kaja.taxi.consumer.events.TimestampAssigner;
-import com.amazonaws.samples.kaja.taxi.consumer.events.es.AverageTripDuration;
-import com.amazonaws.samples.kaja.taxi.consumer.events.es.PickupCount;
-import com.amazonaws.samples.kaja.taxi.consumer.events.kinesis.Event;
-import com.amazonaws.samples.kaja.taxi.consumer.events.kinesis.TripEvent;
-import com.amazonaws.samples.kaja.taxi.consumer.operators.*;
+import com.amazonaws.samples.kaja.taxi.consumer.events.source.Event;
+import com.amazonaws.samples.kaja.taxi.consumer.events.source.TripEvent;
 import com.amazonaws.samples.kaja.taxi.consumer.utils.GeoUtils;
-import com.amazonaws.samples.kaja.taxi.consumer.utils.ParameterToolUtils;
-import com.amazonaws.services.kinesisanalytics.runtime.KinesisAnalyticsRuntime;
-import java.util.Map;
+
 import java.util.Properties;
 import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.environment.LocalStreamEnvironment;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer;
 import org.apache.flink.streaming.connectors.kinesis.config.AWSConfigConstants;
 import org.apache.flink.streaming.connectors.kinesis.config.ConsumerConfigConstants;
@@ -44,8 +35,10 @@ import org.slf4j.LoggerFactory;
 public class ProcessTaxiStreamLocal {
   private static final Logger LOG = LoggerFactory.getLogger(ProcessTaxiStreamLocal.class);
 
-  private static final String DEFAULT_STREAM_NAME = "streaming-analytics-workshop";
-  private static final String DEFAULT_REGION_NAME = Regions.getCurrentRegion()==null ? "eu-west-1" : Regions.getCurrentRegion().getName();
+   private static final String DEFAULT_STREAM_NAME = "billie-source-test";
+
+  private static final String DEFAULT_REGION_NAME = Regions.getCurrentRegion()==null ? "us-east-1" : Regions.getCurrentRegion().getName();
+
 
 
   public static void main(String[] args) throws Exception {

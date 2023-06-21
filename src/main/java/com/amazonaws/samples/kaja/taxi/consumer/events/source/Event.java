@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-package com.amazonaws.samples.kaja.taxi.consumer.events.kinesis;
+package com.amazonaws.samples.kaja.taxi.consumer.events.source;
 
 import com.google.gson.*;
 import com.google.gson.internal.Streams;

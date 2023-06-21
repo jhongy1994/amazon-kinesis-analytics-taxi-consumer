@@ -17,7 +17,7 @@ package com.amazonaws.samples.kaja.taxi.consumer.utils;
 
 import ch.hsr.geohash.BoundingBox;
 import ch.hsr.geohash.WGS84Point;
-import com.amazonaws.samples.kaja.taxi.consumer.events.kinesis.TripEvent;
+import com.amazonaws.samples.kaja.taxi.consumer.events.source.TripEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
